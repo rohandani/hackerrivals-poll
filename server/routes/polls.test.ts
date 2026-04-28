@@ -66,6 +66,49 @@ describe('Poll API Routes', () => {
         .send({ question: 'Test?', options: ['A', ''] });
       expect(res.status).toBe(400);
     });
+
+    it('should reject missing question', async () => {
+      const res = await request(app)
+        .post('/api/polls')
+        .send({ options: ['A', 'B'] });
+      expect(res.status).toBe(400);
+    });
+
+    it('should reject missing options', async () => {
+      const res = await request(app)
+        .post('/api/polls')
+        .send({ question: 'Test?' });
+      expect(res.status).toBe(400);
+    });
+
+    it('should reject non-array options', async () => {
+      const res = await request(app)
+        .post('/api/polls')
+        .send({ question: 'Test?', options: 'not-an-array' });
+      expect(res.status).toBe(400);
+    });
+
+    it('should trim question and option whitespace', async () => {
+      const res = await request(app)
+        .post('/api/polls')
+        .send({ question: '  Trimmed?  ', options: ['  A  ', '  B  '] });
+      expect(res.status).toBe(201);
+      expect(res.body.question).toBe('Trimmed?');
+      expect(res.body.options[0].text).toBe('A');
+      expect(res.body.options[1].text).toBe('B');
+    });
+
+    it('should generate a unique UUID for each poll', async () => {
+      const res1 = await request(app)
+        .post('/api/polls')
+        .send({ question: 'Poll 1?', options: ['A', 'B'] });
+      const res2 = await request(app)
+        .post('/api/polls')
+        .send({ question: 'Poll 2?', options: ['C', 'D'] });
+      expect(res1.body.id).toBeDefined();
+      expect(res2.body.id).toBeDefined();
+      expect(res1.body.id).not.toBe(res2.body.id);
+    });
   });
 
   describe('GET /api/polls', () => {

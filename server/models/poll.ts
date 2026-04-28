@@ -70,6 +70,34 @@ export function createPoll(question: string, options: string[]): Poll {
   return getPollById(id)!;
 }
 
+export function deletePoll(pollId: string): boolean {
+  const run = db.transaction(() => {
+    db.prepare('DELETE FROM votes WHERE poll_id = ?').run(pollId);
+    db.prepare('DELETE FROM poll_options WHERE poll_id = ?').run(pollId);
+    const result = db.prepare('DELETE FROM polls WHERE id = ?').run(pollId);
+    return result.changes > 0;
+  });
+  return run();
+}
+
+export function updatePoll(pollId: string, question: string, options: string[]): Poll | null {
+  const existing = getPollById(pollId);
+  if (!existing) return null;
+
+  const run = db.transaction(() => {
+    db.prepare('UPDATE polls SET question = ? WHERE id = ?').run(question, pollId);
+    db.prepare('DELETE FROM votes WHERE poll_id = ?').run(pollId);
+    db.prepare('DELETE FROM poll_options WHERE poll_id = ?').run(pollId);
+    const insertOption = db.prepare('INSERT INTO poll_options (poll_id, text) VALUES (?, ?)');
+    for (const text of options) {
+      insertOption.run(pollId, text);
+    }
+  });
+
+  run();
+  return getPollById(pollId)!;
+}
+
 export interface CastVoteResult {
   success: boolean;
   error?: 'poll_not_found' | 'option_not_found' | 'duplicate_vote';

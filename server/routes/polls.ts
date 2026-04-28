@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import crypto from 'crypto';
-import { getPollById, getAllPolls, createPoll, castVote } from '../models/poll.js';
+import { getPollById, getAllPolls, createPoll, castVote, deletePoll, updatePoll } from '../models/poll.js';
 
 const router = Router();
 
@@ -81,6 +81,44 @@ router.post('/', (req: Request, res: Response) => {
     res.status(201).json(poll);
   } catch {
     res.status(500).json({ error: 'Failed to create poll' });
+  }
+});
+
+// DELETE /api/polls/:pollId - Delete a poll
+router.delete('/:pollId', (req: Request, res: Response) => {
+  try {
+    const deleted = deletePoll(req.params.pollId);
+    if (!deleted) {
+      return res.status(404).json({ error: 'Poll not found' });
+    }
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: 'Failed to delete poll' });
+  }
+});
+
+// PUT /api/polls/:pollId - Update a poll
+router.put('/:pollId', (req: Request, res: Response) => {
+  try {
+    const { question, options } = req.body;
+
+    if (!question || typeof question !== 'string' || question.trim() === '') {
+      return res.status(400).json({ error: 'Question is required' });
+    }
+    if (!Array.isArray(options) || options.length < 2) {
+      return res.status(400).json({ error: 'At least 2 options are required' });
+    }
+    if (options.some((o: any) => typeof o !== 'string' || o.trim() === '')) {
+      return res.status(400).json({ error: 'All options must be non-empty strings' });
+    }
+
+    const poll = updatePoll(req.params.pollId, question.trim(), options.map((o: string) => o.trim()));
+    if (!poll) {
+      return res.status(404).json({ error: 'Poll not found' });
+    }
+    res.json(poll);
+  } catch {
+    res.status(500).json({ error: 'Failed to update poll' });
   }
 });
 
