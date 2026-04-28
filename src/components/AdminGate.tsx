@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 
-const ADMIN_PASSWORD = 'Hacker@rivals';
+const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || '';
 const SESSION_KEY = 'hr_admin_auth';
 
 function isAuthenticated(): boolean {
