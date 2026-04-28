@@ -5,6 +5,11 @@ import { getPollById, getAllPolls, createPoll, castVote, deletePoll, updatePoll 
 const router = Router();
 
 function generateFingerprint(req: Request): string {
+  const deviceId = req.headers['x-device-id'];
+  if (typeof deviceId === 'string' && deviceId.length > 0) {
+    return crypto.createHash('sha256').update(deviceId).digest('hex');
+  }
+  // Fallback for requests without the header
   const ip = req.ip || req.socket.remoteAddress || 'unknown';
   const ua = req.headers['user-agent'] || 'unknown';
   return crypto.createHash('sha256').update(`${ip}:${ua}`).digest('hex');

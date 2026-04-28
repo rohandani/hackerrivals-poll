@@ -64,7 +64,7 @@ describe('submitVote', () => {
     expect(result).toEqual(voteResponse);
     expect(fetch).toHaveBeenCalledWith('/api/polls/test-123/vote', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Device-Id': expect.any(String) },
       body: JSON.stringify({ optionId: 1 }),
     });
   });

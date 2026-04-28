@@ -2,6 +2,17 @@ import type { Poll, VoteResponse, CreatePollPayload } from '../types/poll';
 
 const BASE_URL = '/api';
 
+const DEVICE_ID_KEY = 'hr_device_id';
+
+function getDeviceId(): string {
+  let id = localStorage.getItem(DEVICE_ID_KEY);
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem(DEVICE_ID_KEY, id);
+  }
+  return id;
+}
+
 export async function fetchPoll(pollId: string): Promise<Poll> {
   const res = await fetch(`${BASE_URL}/polls/${pollId}`);
   if (res.status === 404) {
@@ -16,7 +27,10 @@ export async function fetchPoll(pollId: string): Promise<Poll> {
 export async function submitVote(pollId: string, optionId: number): Promise<VoteResponse> {
   const res = await fetch(`${BASE_URL}/polls/${pollId}/vote`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Device-Id': getDeviceId(),
+    },
     body: JSON.stringify({ optionId }),
   });
   if (res.status === 409) {
