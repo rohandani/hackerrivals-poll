@@ -14,6 +14,7 @@ const mockPoll: Poll = {
     { id: 2, text: 'Rust', voteCount: 7 },
     { id: 3, text: 'Go', voteCount: 3 },
   ],
+  showResults: true,
   createdAt: '2026-04-27T00:00:00Z',
 };
 

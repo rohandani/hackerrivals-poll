@@ -15,6 +15,7 @@ export default function PollPage() {
   const [status, setStatus] = useState<Status>('loading');
   const [votedOptionId, setVotedOptionId] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [serverRejected, setServerRejected] = useState(false);
 
   const loadPoll = useCallback(async () => {
     if (!pollId) return;
@@ -28,7 +29,6 @@ export default function PollPage() {
         if (optionStillExists) {
           setVotedOptionId(existing.optionId);
         } else {
-          // Poll was edited and old option no longer exists — clear stale vote
           clearVote(pollId);
           setVotedOptionId(null);
         }
@@ -52,8 +52,16 @@ export default function PollPage() {
       setPoll(updated);
       saveVote(pollId, optionId);
       setVotedOptionId(optionId);
-    } catch {
-      setStatus('error');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : '';
+      if (message === 'Already voted') {
+        setServerRejected(true);
+        const current = await fetchPoll(pollId).catch(() => null);
+        if (current) setPoll(current);
+        setVotedOptionId(null);
+      } else {
+        setStatus('error');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -76,15 +84,31 @@ export default function PollPage() {
   }
 
   const alreadyVoted = pollId ? hasVoted(pollId) : false;
+  const showResults = (alreadyVoted && votedOptionId !== null) || serverRejected;
 
   return (
     <div className="rounded-xl border border-card-border bg-card-bg p-6 shadow-lg">
-      {alreadyVoted && votedOptionId !== null ? (
+      {showResults ? (
         <>
           <span className="mb-4 inline-block rounded-full bg-accent/20 px-3 py-1 text-xs font-heading text-accent tracking-wider">
             Already voted
           </span>
-          <ResultsView poll={poll} votedOptionId={votedOptionId} />
+          {poll.showResults ? (
+            <ResultsView poll={poll} votedOptionId={votedOptionId} />
+          ) : (
+            <div className="text-center py-6">
+              <h2 className="font-heading text-lg sm:text-xl font-bold text-white mb-4">
+                {poll.question}
+              </h2>
+              {votedOptionId !== null && (
+                <p className="text-white font-body mb-3">
+                  You voted: <span className="text-highlight font-bold">{poll.options.find((o) => o.id === votedOptionId)?.text}</span>
+                </p>
+              )}
+              <p className="text-highlight font-body">✅ Your vote has been recorded</p>
+              <p className="text-sm text-gray-400 mt-2">Results will be revealed later.</p>
+            </div>
+          )}
         </>
       ) : (
         <VoteForm poll={poll} onVote={handleVote} isSubmitting={isSubmitting} />

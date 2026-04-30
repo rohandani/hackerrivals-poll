@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import crypto from 'crypto';
-import { getPollById, getAllPolls, createPoll, castVote, deletePoll, updatePoll } from '../models/poll.js';
+import { getPollById, getAllPolls, createPoll, castVote, deletePoll, updatePoll, toggleShowResults } from '../models/poll.js';
 
 const router = Router();
 
@@ -70,7 +70,7 @@ router.post('/:pollId/vote', (req: Request, res: Response) => {
 // POST /api/polls - Create a new poll
 router.post('/', (req: Request, res: Response) => {
   try {
-    const { question, options } = req.body;
+    const { question, options, showResults } = req.body;
 
     if (!question || typeof question !== 'string' || question.trim() === '') {
       return res.status(400).json({ error: 'Question is required' });
@@ -82,7 +82,7 @@ router.post('/', (req: Request, res: Response) => {
       return res.status(400).json({ error: 'All options must be non-empty strings' });
     }
 
-    const poll = createPoll(question.trim(), options.map((o: string) => o.trim()));
+    const poll = createPoll(question.trim(), options.map((o: string) => o.trim()), showResults !== false);
     res.status(201).json(poll);
   } catch {
     res.status(500).json({ error: 'Failed to create poll' });
@@ -105,7 +105,7 @@ router.delete('/:pollId', (req: Request, res: Response) => {
 // PUT /api/polls/:pollId - Update a poll
 router.put('/:pollId', (req: Request, res: Response) => {
   try {
-    const { question, options } = req.body;
+    const { question, options, showResults } = req.body;
 
     if (!question || typeof question !== 'string' || question.trim() === '') {
       return res.status(400).json({ error: 'Question is required' });
@@ -117,7 +117,24 @@ router.put('/:pollId', (req: Request, res: Response) => {
       return res.status(400).json({ error: 'All options must be non-empty strings' });
     }
 
-    const poll = updatePoll(req.params.pollId, question.trim(), options.map((o: string) => o.trim()));
+    const poll = updatePoll(req.params.pollId, question.trim(), options.map((o: string) => o.trim()), showResults);
+    if (!poll) {
+      return res.status(404).json({ error: 'Poll not found' });
+    }
+    res.json(poll);
+  } catch {
+    res.status(500).json({ error: 'Failed to update poll' });
+  }
+});
+
+// PATCH /api/polls/:pollId/show-results - Toggle show results
+router.patch('/:pollId/show-results', (req: Request, res: Response) => {
+  try {
+    const { showResults } = req.body;
+    if (typeof showResults !== 'boolean') {
+      return res.status(400).json({ error: 'showResults must be a boolean' });
+    }
+    const poll = toggleShowResults(req.params.pollId, showResults);
     if (!poll) {
       return res.status(404).json({ error: 'Poll not found' });
     }

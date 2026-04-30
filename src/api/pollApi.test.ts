@@ -9,6 +9,7 @@ const mockPoll: Poll = {
     { id: 1, text: 'React', voteCount: 10 },
     { id: 2, text: 'Vue', voteCount: 5 },
   ],
+  showResults: true,
   createdAt: '2026-04-27T00:00:00Z',
 };
 

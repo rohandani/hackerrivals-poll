@@ -25,6 +25,7 @@ function initSchema(db: Database.Database) {
     CREATE TABLE IF NOT EXISTS polls (
       id TEXT PRIMARY KEY,
       question TEXT NOT NULL,
+      show_results INTEGER DEFAULT 1,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -47,6 +48,12 @@ function initSchema(db: Database.Database) {
       UNIQUE(poll_id, voter_fingerprint)
     );
   `);
+
+  // Migration: add show_results column if missing (for existing DBs)
+  const columns = db.prepare("PRAGMA table_info(polls)").all() as { name: string }[];
+  if (!columns.some((c) => c.name === 'show_results')) {
+    db.exec('ALTER TABLE polls ADD COLUMN show_results INTEGER DEFAULT 1');
+  }
 }
 
 const db = createDb(dbPath);

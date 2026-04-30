@@ -11,12 +11,13 @@ export interface Poll {
   id: string;
   question: string;
   options: PollOption[];
+  showResults: boolean;
   createdAt: string;
 }
 
 export function getPollById(pollId: string): Poll | null {
-  const row = db.prepare('SELECT id, question, created_at FROM polls WHERE id = ?').get(pollId) as
-    | { id: string; question: string; created_at: string }
+  const row = db.prepare('SELECT id, question, show_results, created_at FROM polls WHERE id = ?').get(pollId) as
+    | { id: string; question: string; show_results: number; created_at: string }
     | undefined;
 
   if (!row) return null;
@@ -28,15 +29,17 @@ export function getPollById(pollId: string): Poll | null {
   return {
     id: row.id,
     question: row.question,
+    showResults: row.show_results === 1,
     createdAt: row.created_at,
     options: options.map((o) => ({ id: o.id, text: o.text, voteCount: o.vote_count })),
   };
 }
 
 export function getAllPolls(): Poll[] {
-  const rows = db.prepare('SELECT id, question, created_at FROM polls ORDER BY created_at DESC').all() as {
+  const rows = db.prepare('SELECT id, question, show_results, created_at FROM polls ORDER BY created_at DESC').all() as {
     id: string;
     question: string;
+    show_results: number;
     created_at: string;
   }[];
 
@@ -48,19 +51,20 @@ export function getAllPolls(): Poll[] {
     return {
       id: row.id,
       question: row.question,
+      showResults: row.show_results === 1,
       createdAt: row.created_at,
       options: options.map((o) => ({ id: o.id, text: o.text, voteCount: o.vote_count })),
     };
   });
 }
 
-export function createPoll(question: string, options: string[]): Poll {
+export function createPoll(question: string, options: string[], showResults = true): Poll {
   const id = uuidv4();
-  const insertPoll = db.prepare('INSERT INTO polls (id, question) VALUES (?, ?)');
+  const insertPoll = db.prepare('INSERT INTO polls (id, question, show_results) VALUES (?, ?, ?)');
   const insertOption = db.prepare('INSERT INTO poll_options (poll_id, text) VALUES (?, ?)');
 
   const run = db.transaction(() => {
-    insertPoll.run(id, question);
+    insertPoll.run(id, question, showResults ? 1 : 0);
     for (const text of options) {
       insertOption.run(id, text);
     }
@@ -80,12 +84,15 @@ export function deletePoll(pollId: string): boolean {
   return run();
 }
 
-export function updatePoll(pollId: string, question: string, options: string[]): Poll | null {
+export function updatePoll(pollId: string, question: string, options: string[], showResults?: boolean): Poll | null {
   const existing = getPollById(pollId);
   if (!existing) return null;
 
   const run = db.transaction(() => {
     db.prepare('UPDATE polls SET question = ? WHERE id = ?').run(question, pollId);
+    if (showResults !== undefined) {
+      db.prepare('UPDATE polls SET show_results = ? WHERE id = ?').run(showResults ? 1 : 0, pollId);
+    }
     db.prepare('DELETE FROM votes WHERE poll_id = ?').run(pollId);
     db.prepare('DELETE FROM poll_options WHERE poll_id = ?').run(pollId);
     const insertOption = db.prepare('INSERT INTO poll_options (poll_id, text) VALUES (?, ?)');
@@ -95,6 +102,13 @@ export function updatePoll(pollId: string, question: string, options: string[]):
   });
 
   run();
+  return getPollById(pollId)!;
+}
+
+export function toggleShowResults(pollId: string, showResults: boolean): Poll | null {
+  const existing = getPollById(pollId);
+  if (!existing) return null;
+  db.prepare('UPDATE polls SET show_results = ? WHERE id = ?').run(showResults ? 1 : 0, pollId);
   return getPollById(pollId)!;
 }
 

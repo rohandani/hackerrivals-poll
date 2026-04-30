@@ -8,6 +8,7 @@ export interface Poll {
   id: string;
   question: string;
   options: PollOption[];
+  showResults: boolean;
   createdAt: string;
 }
 
@@ -24,4 +25,5 @@ export interface VoteResponse {
 export interface CreatePollPayload {
   question: string;
   options: string[];
+  showResults?: boolean;
 }

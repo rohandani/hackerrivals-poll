@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { fetchAllPolls, deletePoll, updatePoll } from '../api/pollApi';
+import { fetchAllPolls, deletePoll, updatePoll, togglePollShowResults } from '../api/pollApi';
 import type { Poll } from '../types/poll';
 
 export default function PollsListPage() {
@@ -79,6 +79,15 @@ export default function PollsListPage() {
     return poll.options.reduce((sum, o) => sum + o.voteCount, 0);
   }
 
+  async function handleToggleResults(poll: Poll) {
+    try {
+      const updated = await togglePollShowResults(poll.id, !poll.showResults);
+      setPolls((prev) => prev.map((p) => (p.id === poll.id ? updated : p)));
+    } catch {
+      setError('Failed to toggle results visibility.');
+    }
+  }
+
   if (loading) {
     return <p className="text-center text-gray-400 py-12">Loading polls…</p>;
   }
@@ -129,7 +138,7 @@ export default function PollsListPage() {
                       {poll.options.length} options · {totalVotes(poll)} votes
                     </p>
                   </button>
-                  <div className="flex gap-2 mt-3">
+                  <div className="flex items-center gap-2 mt-3">
                     <button
                       onClick={() => startEdit(poll)}
                       className="rounded border border-card-border px-3 py-1 text-xs text-gray-400
@@ -143,6 +152,17 @@ export default function PollsListPage() {
                         hover:border-red-500 hover:text-red-400 transition-colors"
                     >
                       Delete
+                    </button>
+                    <button
+                      onClick={() => handleToggleResults(poll)}
+                      className={`ml-auto rounded border px-3 py-1 text-xs transition-colors ${
+                        poll.showResults
+                          ? 'border-green-500/50 text-green-400 hover:border-green-500'
+                          : 'border-card-border text-gray-500 hover:border-gray-400'
+                      }`}
+                      title={poll.showResults ? 'Results visible to voters' : 'Results hidden from voters'}
+                    >
+                      {poll.showResults ? '📊 Results ON' : '🚫 Results OFF'}
                     </button>
                   </div>
                 </div>

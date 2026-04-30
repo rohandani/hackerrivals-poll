@@ -83,3 +83,16 @@ export async function updatePoll(pollId: string, payload: CreatePollPayload): Pr
   }
   return res.json();
 }
+
+export async function togglePollShowResults(pollId: string, showResults: boolean): Promise<Poll> {
+  const res = await fetch(`${BASE_URL}/polls/${pollId}/show-results`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ showResults }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || `Failed to update poll: ${res.status}`);
+  }
+  return res.json();
+}
