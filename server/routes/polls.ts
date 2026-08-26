@@ -82,7 +82,7 @@ router.post('/', (req: Request, res: Response) => {
       return res.status(400).json({ error: 'All options must be non-empty strings' });
     }
 
-    const poll = createPoll(question.trim(), options.map((o: string) => o.trim()), showResults !== false);
+    const poll = createPoll(question.trim(), options.map((o: string) => o.trim()), showResults === true);
     res.status(201).json(poll);
   } catch {
     res.status(500).json({ error: 'Failed to create poll' });
